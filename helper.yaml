@@ -1,0 +1,69 @@
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: nr-shared-disk
+  namespace: jhub
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: default
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: init-script
+  namespace: jhub
+data:
+  init.sh: |
+   #!/bin/bash
+   git clone https://github.com/aschiffler/nrhub.git
+   cd nrhub
+   cp nodered/package.json /nr-shared-disk
+   cp -r nodered/templates /nr-hub
+   cd /nr-shared-disk
+   npm install
+   cd /nrhub
+   cp patches/strategy.js /nr-shared-disk/node_modules/passport-oauth2/lib/strategy.js 
+   cp patches/index.js /nr-shared-disk/node_modules/@node-red/editor-api/lib/auth/index.js
+---
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: helper
+  namespace: jhub
+spec:
+  ttlSecondsAfterFinished: 100
+  template:
+    spec:
+      volumes:
+        - name: nr-shared-disk
+          persistentVolumeClaim:
+            claimName: nr-shared-disk
+        - name: nr-hub-db-dir
+          persistentVolumeClaim:
+            claimName: nr-hub-db-dir
+        - name: init-script
+          configMap:
+            name: init-script
+            defaultMode: 0777
+      containers:
+      - name: helper
+        image: roschi/vlab-node-red:latest
+        command: ["/script/init.sh"]
+        volumeMounts:
+        - mountPath: "/nr-shared-disk"
+          name: nr-shared-disk
+        - mountPath: "/nr-hub"
+          name: nr-hub-db-dir
+        - name: init-script 
+          mountPath: /script/init.sh
+          subPath: init.sh
+      restartPolicy: Never
+  backoffLimit: 4
+

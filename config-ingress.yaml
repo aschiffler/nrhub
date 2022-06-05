@@ -1,0 +1,5 @@
+controller:
+  extraArgs:
+    default-ssl-certificate: "jhub/vlab-education"
+  ingressClassResource:
+    default: true

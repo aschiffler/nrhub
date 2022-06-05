@@ -1,0 +1,103 @@
+fullnameOverride: nr
+nameOverride: nr
+
+ingress:
+  enabled: true
+  hosts:
+    - nrhub.vlab.education
+  tls:
+    - hosts:
+        - nrhub.vlab.education
+      secretName: vlab-education
+
+proxy:
+  secretToken: "ea3ec265d041912952f3ff6c5565e45d54cd97f303875"
+  service:
+    type: ClusterIP
+
+hub:
+  extraFiles:
+    my_azuread:
+      mountPath: /usr/local/lib/python3.8/dist-packages/oauthenticator/azuread.py
+  extraConfig:
+    00-first-config: |
+      c.AzureAdOAuthenticator.username_claim = 'email'
+      c.AzureAdOAuthenticator.scope = ['email','openid','profile']
+      c.AzureAdOAuthenticator.admin_group = 'e0969d08-92fe-4cae-bcbd-b9d3e39e8a8c'
+      c.KubeSpawner.debug = False
+      c.KubeSpawner.uid = 1000 
+      c.KubeSpawner.gid = 100
+      c.KubeSpawner.pod_name_template = 'nr-{username}'
+      import urllib.request
+      urllib.request.urlretrieve("https://nodered.org/about/resources/media/node-red-hexagon.png", "mylogo.png")
+      c.JupyterHub.logo_file = '/srv/jupyterhub/mylogo.png'
+      c.JupyterHub.template_paths = ["/srv/jupyterhub/templates"]
+    02-nodered-startup: |
+      pvc_name_template = 'claim-{username}'
+      volume_name_template = 'volume-{username}'
+      c.KubeSpawner.pvc_name_template = pvc_name_template
+      c.KubeSpawner.storage_pvc_ensure = True
+      c.KubeSpawner.extra_container_config = {
+              "args" : [],
+              "command" : ["npm","--prefix","/usr/src/node-red","--no-update-notifier", "--no-fund", "start", "--cache", "/home/vlab-user/node-red/.npm","--","--port","8888","--settings","/usr/src/node-red-config/settings.js"]
+      }
+      c.KubeSpawner.volume_mounts = [{
+                "mountPath": "/usr/src/node-red-config",
+                "name" : "nodered-settings"
+      },{
+                "mountPath": "/home/vlab-user",
+                "name" : volume_name_template
+      },{
+                "mountPath": "/usr/src/node-red",
+                "name": "nr-shared-disk",
+                "readOnly": True,
+      }]
+      c.KubeSpawner.volumes = [{
+              "name" : "nodered-settings",
+              "configMap" : {"name" : "nodered-settings"}
+      },{
+              "name" : volume_name_template,
+              "persistentVolumeClaim": {"claimName" : pvc_name_template}
+      },{
+              "name" : "nr-shared-disk",
+              "persistentVolumeClaim": {"claimName" : "nr-shared-disk"}
+      }]
+  config:
+    AzureAdOAuthenticator:
+      client_id: "bc372d9f0"
+      client_secret: "1K5VSQQO-jb"
+      oauth_callback_url: "https://nrhub.vlab.education/hub/oauth_callback"
+      tenant_id: "ba837db4"
+    Authenticator:
+      auto_login: true
+    JupyterHub:
+      admin_access: true
+      authenticator_class: azuread
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+
+singleuser:
+  extraEnv:
+    HUB_BASE_URL: "https://nrhub.vlab.education"
+  storage:
+    capacity: 1Gi
+    homeMountPath: /home/vlab-user/
+  memory:
+    limit: 256M
+    guarantee: 128M
+  cpu:
+    limit: 1
+    guarantee: .5
+  defaultUrl: "/"  
+  image:
+    name: roschi/vlab-node-red
+    tag: latest
+
+cull:
+  timeout: 3600
+  every: 60
+ 
+scheduling:
+  userPods:
+    nodeAffinity:
+      matchNodePurpose: prefer
