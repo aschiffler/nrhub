@@ -3,10 +3,8 @@
 #create namespace
 kubectl create ns jhub
 
-# generate cert, key and sign it
-openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout https-certificates/privkey.pem -out https-certificates/fullchain.pem
-
 # create a tls secret for the ingress controler
+# BUT before put correct information in the files privkey.pem and fullchain.pem (eg. letsencrypt)
 kubectl create secret tls vlab-education --cert https-certificates/fullchain.pem --key https-certificates/privkey.pem -njhub
 
 # install the ingress controler
