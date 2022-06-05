@@ -1,4 +1,4 @@
-# mutli instance node-red in a kubernetes cluster with AzureAD as identity provider
+# mutli instance node-red in a kubernetes cluster with AzureAD as identity provider using jupyterhub as platform
 nrhub is a multi-instance hub for node-red. Every user which exists within an indetnity provider (eg. azuread) can start his own node-red instance. User which are assigned in a special group can impersonate every user (= admin) and can start or work in every node-red instance.
 The driving purpose was education to built this beside a classic jupyterhub with python notebooks.
 
