@@ -1,4 +1,7 @@
 # nrhub
+nrhub is a multi-instance hub for node-red. Every user which exists within an indetnity provider (eg. azuread) can start his own node-red instance. User which are assigned in a special group can impersonate every user (= admin) and can start or work in every node-red instance.
+The driving purpose was education to built this beside a classic jupyterhub with python notebooks.
+
 ## 0. create a kubernetes cluster. eg. by the use of azure AKS or any other k8s
 In the case for AKS, after the creation is finishd you can connect to your cluster:
 ```
